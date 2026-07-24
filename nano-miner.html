@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BITHOME.PRO · Nano Miner</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05050a; --panel: #10101e; --border: #1a1a35;
+    --green: #00ff88; --dim: #44446a; --text: #c0c0e0; --accent: #f7931a; --blue: #00d4ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono', monospace; padding: 30px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .miner-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 30px; width: 100%; max-width: 800px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+  h1 { font-family: 'Orbitron', sans-serif; color: var(--accent); text-align: center; margin-bottom: 20px; letter-spacing: 2px; }
+  .control-group { margin-bottom: 20px; }
+  label { display: block; color: var(--dim); margin-bottom: 8px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+  input[type="text"], select { width: 100%; background: #000; border: 1px solid var(--border); color: var(--text); padding: 12px; font-family: inherit; font-size: 1rem; border-radius: 4px; outline: none; }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+  .btn { display: block; width: 100%; font-family: 'Orbitron', sans-serif; font-weight: bold; background: transparent; color: var(--green); border: 1px solid var(--green); padding: 15px; cursor: pointer; transition: 0.2s; border-radius: 4px; font-size: 1.1rem; letter-spacing: 2px; margin-top: 10px; }
+  .btn:hover { background: var(--green); color: #000; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4); }
+  .btn.mining { color: var(--accent); border-color: var(--accent); }
+  .btn.mining:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px rgba(247, 147, 26, 0.4); }
+  .console { background: #000; border: 1px solid var(--dim); height: 250px; overflow-y: auto; padding: 15px; margin-top: 20px; border-radius: 4px; font-size: 0.85rem; line-height: 1.5; color: var(--green); }
+  .stat-row { display: flex; justify-content: space-between; margin-top: 15px; color: var(--dim); font-size: 0.9rem; }
+  .stat-val { color: #fff; font-weight: bold; }
+  .help-toggle { font-family: inherit; background: none; border: 1px solid var(--blue); color: var(--blue); padding: 8px 16px; cursor: pointer; border-radius: 4px; font-size: 0.85rem; margin-top: 10px; transition: 0.2s; }
+  .help-toggle:hover { background: var(--blue); color: #000; }
+  .help-panel { display: none; background: #000; border: 1px solid var(--blue); border-radius: 4px; padding: 20px; margin-top: 10px; font-size: 0.9rem; line-height: 1.6; }
+  .help-panel.open { display: block; }
+  .help-panel h3 { color: var(--blue); font-family: 'Orbitron', sans-serif; margin: 15px 0 8px; font-size: 1rem; }
+  .help-panel h3:first-child { margin-top: 0; }
+  .help-panel code { color: var(--accent); background: rgba(247,147,26,0.1); padding: 1px 6px; border-radius: 3px; }
+  .help-panel .example { color: var(--green); }
+  .tag { display: inline-block; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  .tag.blue { background: rgba(0,212,255,0.15); color: var(--blue); border: 1px solid rgba(0,212,255,0.3); }
+  .tag.green { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .tag.gold { background: rgba(247,147,26,0.15); color: var(--accent); border: 1px solid rgba(247,147,26,0.3); }
+</style>
+</head>
+<body>
+
+<div class="miner-box">
+  <h1>NANO MINER</h1>
+
+  <div class="control-group">
+    <label>Базов низ (Данни за хеширане)</label>
+    <input type="text" id="baseData" value="Stankov_Data_Block_" autocomplete="off">
+  </div>
+
+  <div class="control-group">
+    <label>Трудност (Цел)</label>
+    <select id="difficulty">
+      <option value="1">1 Водеща нула (0xxx...)</option>
+      <option value="2">2 Водещи нули (00xx...)</option>
+      <option value="3">3 Водещи нули (000x...)</option>
+      <option value="4">4 Водещи нули (0000...)</option>
+    </select>
+  </div>
+
+  <button id="mineBtn" class="btn" onclick="toggleMiner()">СТАРТИРАЙ КОПАЧА</button>
+
+  <div class="stat-row">
+    <div>Хешове/сек: <span id="hashRate" class="stat-val">0</span></div>
+    <div>Текущ Nonce: <span id="currNonce" class="stat-val">0</span></div>
+  </div>
+
+  <div id="consoleOut" class="console">Готовност за работа...</div>
+
+  <button class="help-toggle" onclick="toggleHelp()">? КАК РАБОТИ &mdash; Базов низ</button>
+  <div id="helpPanel" class="help-panel">
+    <h3>Как работи Nano Miner</h3>
+    <p>Това е браузърен SHA-256 копач (miner) за демонстрация на Proof-of-Work концепцията на Bitcoin. Алгоритъмът:</p>
+    <p>1. Взема <strong>Базов низ</strong> (данни за хеширане)<br>
+       2. Добавя <strong>nonce</strong> (число: 0, 1, 2, 3...)<br>
+       3. Хешира комбинацията със SHA-256<br>
+       4. Проверява дали хешът започва с <strong>N на брой нули</strong> (трудност)<br>
+       5. Ако да → блокът е копан! Ако не → увеличава nonce и пробва отново.</p>
+
+    <h3>Базов низ (Данни за хеширане)</h3>
+    <p>Това е входният низ, който се хешира заедно с nonce. Може да бъде <strong>всякакъв текст или хекс низ</strong>:</p>
+    <p><span class="example">● Bitcoin блок хедър</span> — 256-битов хедър като хекс низ (напр. <code>0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c</code>)</p>
+    <p><span class="example">● Произволен текст</span> — напр. <code>Stankov_Data_Block_</code>, <code>Hello_Bitcoin</code>, <code>Genesis_2026</code></p>
+    <p><span class="example">● Числови данни</span> — напр. <code>1234567890</code>, <code>65537</code>, <code>16705</code></p>
+    <p><span class="example">● Stankov архитектура</span> — <code>STANKOV_TAPE_306</code>, <code>FERMAT_257_GENESIS</code></p>
+    <p><span class="example">● JSON структури</span> — <code>{"tx":"abc","block":0}</code></p>
+
+    <h3>Какво представлява nonce?</h3>
+    <p>Nonce (number used once) е променливата, която копачът променя при всяка итерация, докато намери валиден хеш. В Bitcoin това е 32-битово число в блок хедъра. Тук започва от 0 и расте.</p>
+
+    <h3>Трудност (Цел)</h3>
+    <p>Колкото повече водещи нули се изискват, толкова по-трудно (и отнема повече време) е да се намери валиден nonce. В Bitcoin мрежата трудността се коригира динамично, за да поддържа ~10 мин време за блок.</p>
+  </div>
+</div>
+
+<script>
+  function sha256(ascii) {
+      function rightRotate(value, amount) { return (value>>>amount) | (value<<(32 - amount)); };
+      var mathPow = Math.pow; var maxWord = mathPow(2, 32); var lengthProperty = 'length'; var i, j;
+      var result = ''; var words = []; var asciiBitLength = ascii[lengthProperty]*8;
+      var hash = sha256.h = sha256.h || []; var k = sha256.k = sha256.k || [];
+      var primeCounter = k[lengthProperty]; var isComposite = {};
+      for (var candidate = 2; primeCounter < 64; candidate++) {
+          if (!isComposite[candidate]) {
+              for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+              hash[primeCounter] = (mathPow(candidate, .5)*maxWord)|0;
+              k[primeCounter++] = (mathPow(candidate, 1/3)*maxWord)|0;
+          }
+      }
+      ascii += '\x80'; while (ascii[lengthProperty]%64 - 56) ascii += '\x00';
+      for (i = 0; i < ascii[lengthProperty]; i++) {
+          j = ascii.charCodeAt(i);
+          if (j>>8) return;
+          words[i>>2] |= j << ((3 - i)%4)*8;
+      }
+      words[words[lengthProperty]] = ((asciiBitLength/maxWord)|0); words[words[lengthProperty]] = (asciiBitLength)
+      for (j = 0; j < words[lengthProperty];) {
+          var w = words.slice(j, j += 16); var oldHash = hash; hash = hash.slice(0, 8);
+          for (i = 0; i < 64; i++) {
+              var i2 = i + j; var w15 = w[i - 15], w2 = w[i - 2]; var a = hash[0], e = hash[4];
+              var temp1 = hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + ((e&hash[5])^((~e)&hash[6])) + k[i] + (w[i] = (i < 16) ? w[i] : (w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15>>>3)) + w[i - 7] + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2>>>10)))|0);
+              var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+              hash = [(temp1 + temp2)|0].concat(hash); hash[4] = (hash[4] + temp1)|0;
+          }
+          for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i])|0;
+      }
+      for (i = 0; i < 8; i++) {
+          for (j = 3; j + 1; j--) { var b = (hash[i]>>(j*8))&255; result += ((b < 16) ? 0 : '') + b.toString(16); }
+      }
+      return result;
+  }
+
+  let isMining = false;
+  let nonce = 0;
+  let targetZeros = 1;
+  let baseStr = "";
+  let targetPrefix = "";
+  let startTime = 0;
+  let hashesSinceLastUpdate = 0;
+  const con = document.getElementById('consoleOut');
+
+  function log(msg, color="var(--green)") {
+      con.innerHTML += `<span style="color:${color}">${msg}</span><br>`;
+      con.scrollTop = con.scrollHeight;
+  }
+
+  function toggleHelp() {
+      document.getElementById('helpPanel').classList.toggle('open');
+  }
+
+  function toggleMiner() {
+      const btn = document.getElementById('mineBtn');
+      if(!isMining) {
+          isMining = true;
+          btn.innerText = "СПРИ КОПАЧА";
+          btn.classList.add('mining');
+          targetZeros = parseInt(document.getElementById('difficulty').value);
+          targetPrefix = "0".repeat(targetZeros);
+          baseStr = document.getElementById('baseData').value;
+          nonce = 0;
+          hashesSinceLastUpdate = 0;
+          startTime = Date.now();
+          log(`\n[INIT] Стартиране на задача... Цел: ${targetZeros} нули`, "var(--accent)");
+          log(`[INFO] Базов низ: "${baseStr}"`, "var(--dim)");
+          mineLoop();
+      } else {
+          isMining = false;
+          btn.innerText = "СТАРТИРАЙ КОПАЧА";
+          btn.classList.remove('mining');
+          log(`[STOP] Процесът е прекъснат.`, "#ff3366");
+      }
+  }
+
+  function mineLoop() {
+      if(!isMining) return;
+      const chunkSize = 1000;
+      let found = false;
+      let finalHash = "";
+      for(let i=0; i<chunkSize; i++) {
+          let testStr = baseStr + nonce;
+          let hash = sha256(testStr);
+          if(hash.startsWith(targetPrefix)) {
+              found = true;
+              finalHash = hash;
+              break;
+          }
+          nonce++;
+          hashesSinceLastUpdate++;
+      }
+      if(found) {
+          isMining = false;
+          const btn = document.getElementById('mineBtn');
+          btn.innerText = "СТАРТИРАЙ КОПАЧА";
+          btn.classList.remove('mining');
+          let timeSec = ((Date.now() - startTime)/1000).toFixed(2);
+          log(`\n===================================`, "var(--accent)");
+          log(` УСПЕХ! БЛОКЪТ Е ИЗКОПАН!`, "#fff");
+          log(` Време: ${timeSec} сек`, "var(--dim)");
+          log(` Nonce: ${nonce}`, "#fff");
+          log(` Хеш:   ${finalHash}`, "var(--accent)");
+          log(`===================================\n`, "var(--accent)");
+          document.getElementById('currNonce').innerText = nonce;
+      } else {
+          let now = Date.now();
+          if(now - startTime >= 1000) {
+              let hps = Math.floor(hashesSinceLastUpdate / ((now - startTime)/1000));
+              document.getElementById('hashRate').innerText = hps.toLocaleString();
+              document.getElementById('currNonce').innerText = nonce.toLocaleString();
+              log(`[SCAN] Nonce ${nonce}... Търсене продължава.`, "var(--dim)");
+              startTime = now;
+              hashesSinceLastUpdate = 0;
+          }
+          setTimeout(mineLoop, 0);
+      }
+  }
+</script>
+</body>
+</html>
